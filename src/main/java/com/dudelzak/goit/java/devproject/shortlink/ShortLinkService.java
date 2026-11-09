@@ -6,7 +6,8 @@ import com.dudelzak.goit.java.devproject.shortlink.dto.ShortLinkResponse;
 import com.dudelzak.goit.java.devproject.security.User;
 import com.dudelzak.goit.java.devproject.security.SecurityUtils;
 import com.dudelzak.goit.java.devproject.shortlink.exception.*;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,22 +17,51 @@ import java.util.List;
 import java.util.Objects;
 
 @Service
-@RequiredArgsConstructor
 public class ShortLinkService {
-
+    private final String baseUrl;
     private final ShortLinkRepository shortLinkRepository;
     private final SecurityUtils securityUtils;
     private final CodeGenerator codeGenerator;
+
+    public ShortLinkService(
+            @Value("${app.base-url:${APP_BASE_URL:http://localhost:8080/api/v1/link/go/}}") String baseUrl,
+            ShortLinkRepository shortLinkRepository,
+            SecurityUtils securityUtils,
+            CodeGenerator codeGenerator
+    ) {
+        if (baseUrl == null || baseUrl.isBlank()) {
+            this.baseUrl = "http://localhost:8080/api/v1/link/go/";
+        } else {
+            this.baseUrl = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
+        }
+        this.shortLinkRepository = shortLinkRepository;
+        this.securityUtils = securityUtils;
+        this.codeGenerator = codeGenerator;
+    }
+
+    public ShortLinkResponse getShortLinkWithAuthCheck(String shortCode) {
+        ShortLink link =  shortLinkRepository.findByShortCode(shortCode).orElseThrow(NoSuchLinkException::new);
+
+        Long currentUserId = securityUtils.getCurrentUserId();
+        if (!link.getUser().getId().equals(currentUserId)) {
+            throw new UserDoesNotOwnShortLinkException();
+        }
+
+        return getShortLink(link);
+    }
 
     public ShortLinkResponse getShortLink(String shortCode) {
         return getShortLink(shortLinkRepository.findByShortCode(shortCode).orElseThrow(NoSuchLinkException::new));
     }
 
     public ShortLinkResponse getShortLink(ShortLink link) {
+        String fullUrl = baseUrl + link.getShortCode();
         return ShortLinkResponse.builder()
                 .enabled(link.isEnabled())
                 .originalUrl(link.getOriginalUrl())
                 .shortCode(link.getShortCode())
+                .shortUrl(fullUrl)
+                .shortLink(fullUrl)
                 .createdAt(link.getCreatedAt())
                 .editedAt(link.getEditedAt())
                 .expiresAt(link.getExpiresAt())
@@ -52,40 +82,45 @@ public class ShortLinkService {
                                 shortLinkRepository.findAllByUser(user)
                 )
                 .stream()
-                .map(link -> ShortLinkResponse.builder()
-                        .enabled(link.isEnabled())
-                        .originalUrl(link.getOriginalUrl())
-                        .shortCode(link.getShortCode())
-                        .createdAt(link.getCreatedAt())
-                        .expiresAt(link.getExpiresAt())
-                        .visits(link.getVisits())
-                        .createdBy(link.getUser().getUsername())
-                        .build())
+                .map(this::getShortLink)
                 .toList();
     }
 
     public ShortLinkResponse createShortLink(CreateShortLinkRequest request) {
-        String shortCode;
-        if(request.getCustomCode() != null && !request.getCustomCode().isBlank())
-            shortCode = request.getCustomCode();
-        else
-            shortCode = codeGenerator.generateCode();
+        boolean isCustom = request.getCustomCode() != null && !request.getCustomCode().isBlank();
+        int maxAttempts = isCustom ? 1 : 10;
 
-        if(shortLinkRepository.existsByShortCode(shortCode)) throw new ShortLinkWithCodeAlreadyExistsException();
-        ShortLink link =
-                ShortLink.builder()
-                        .enabled(true)
-                        .createdAt(Instant.now())
-                        .editedAt(Instant.now())
-                        .expiresAt(request.getExpiresAt() != null ? request.getExpiresAt() : Instant.now().plus(30, ChronoUnit.DAYS))
-                        .originalUrl(request.getOriginalUrl())
-                        .shortCode(shortCode)
-                        .visits(0L)
-                        .user(securityUtils.getCurrentUser())
-                        .build();
-        if(request.getEnabled() != null) link.setEnabled(request.getEnabled());
-        shortLinkRepository.save(link);
-        return getShortLink(shortCode);
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            String shortCode = isCustom ? request.getCustomCode() : codeGenerator.generateCode();
+            if (shortLinkRepository.existsByShortCode(shortCode)) {
+                if (isCustom) {
+                    throw new ShortLinkWithCodeAlreadyExistsException();
+                }
+                continue;
+            }
+
+            ShortLink link = ShortLink.builder()
+                    .enabled(request.getEnabled() == null || request.getEnabled())
+                    .createdAt(Instant.now())
+                    .editedAt(Instant.now())
+                    .expiresAt(request.getExpiresAt() != null ? request.getExpiresAt() : Instant.now().plus(30, ChronoUnit.DAYS))
+                    .originalUrl(request.getOriginalUrl())
+                    .shortCode(shortCode)
+                    .visits(0L)
+                    .user(securityUtils.getCurrentUser())
+                    .build();
+
+            try {
+                shortLinkRepository.saveAndFlush(link);
+                return getShortLink(link);
+            } catch (DataIntegrityViolationException e) {
+                if (isCustom) {
+                    throw new ShortLinkWithCodeAlreadyExistsException();
+                }
+                // Auto-generated code collision race condition: retry with a new code
+            }
+        }
+        throw new ShortLinkWithCodeAlreadyExistsException();
     }
 
     @Transactional
@@ -117,7 +152,7 @@ public class ShortLinkService {
         }
         link.setEditedAt(Instant.now());
         shortLinkRepository.save(link);
-        return getShortLink(link);
+        return getShortLink(link.getShortCode());
     }
 
     public String getOriginalUrl(String shortCode) {

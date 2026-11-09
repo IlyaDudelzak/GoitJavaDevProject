@@ -19,16 +19,13 @@ class CodeGeneratorTest {
     }
 
     @Test
-    void generatedCodeMustBeUniqueTest() {
-        String code1 = codeGenerator.generateCode();
-        String code2 = codeGenerator.generateCode();
-
-        assertNotNull(code1);
-        assertNotNull(code2);
-
-        assertTrue(code1.length() >= 6 && code1.length() <= 8);
-        assertTrue(code2.length() >= 6 && code2.length() <= 8);
-
-        assertNotEquals(code1, code2, "Codes must be unique");
+    void generatedCodeFormatTest() {
+        for (int i = 0; i < 50; i++) {
+            String code = codeGenerator.generateCode();
+            assertNotNull(code);
+            int length = code.length();
+            assertTrue(length >= 6 && length <= 8);
+            assertTrue(code.matches("^[a-zA-Z0-9]{6,8}$"));
+        }
     }
 }

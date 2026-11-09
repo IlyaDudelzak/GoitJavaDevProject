@@ -365,6 +365,29 @@ class ShortLinkControllerTest {
     }
 
     @Test
+    void getOthersShortLinkShouldReturn403() {
+        var request = createDefaultRequest("testlink", Instant.now().plus(1, ChronoUnit.DAYS));
+        sendCreateRequest(request, true)
+                .then()
+                .statusCode(200);
+        RegisterRequest registerRequest = new RegisterRequest("otheruser", "Password12345");
+        String otherToken = given()
+                .contentType(ContentType.JSON)
+                .body(registerRequest)
+                .when()
+                .post("/api/v1/auth/register")
+                .then()
+                .extract()
+                .path("token");
+        given()
+                .header("Authorization", "Bearer " + otherToken)
+                .when()
+                .get("/api/v1/link/details/testlink")
+                .then()
+                .statusCode(403);
+    }
+
+    @Test
     void getAllLinksByUserShouldReturn200() {
         sendCreateRequest(createDefaultRequest("testlink", Instant.now().plus(1, ChronoUnit.DAYS)), true).then().statusCode(200);
         sendCreateRequest(createDefaultRequest("testing", Instant.now().plus(1, ChronoUnit.DAYS)).toBuilder().enabled(false).build(), true).then().statusCode(200);

@@ -48,18 +48,26 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Run Unit & Integration Tests
-        run: ./gradlew test --no-daemon
+      - name: Run Tests & Verify Code Coverage (>80%)
+        run: ./gradlew clean check jacocoTestReport --no-daemon
 
       - name: Build Boot WAR
         run: ./gradlew bootWar -x test --no-daemon
 
       - name: Upload Test Report Artifact
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-reports
           path: build/reports/tests/test/
+          retention-days: 7
+
+      - name: Upload JaCoCo Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-coverage-report
+          path: build/reports/jacoco/test/
           retention-days: 7
 
       - name: Upload Application Artifact

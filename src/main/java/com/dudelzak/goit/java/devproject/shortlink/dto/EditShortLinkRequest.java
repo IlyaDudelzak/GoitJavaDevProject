@@ -22,7 +22,7 @@ public class EditShortLinkRequest {
     private String shortCode;
 
     @Pattern(
-            regexp = "^(https?://)?(www\\.)?([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}((:[0-9]+)?(/\\S*)?)?$",
+            regexp = "^(https?://)(www\\.)?([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}((:[0-9]+)?(/\\S*)?)?$",
             message = "Original URL must be a valid link"
     )
     @Schema(description = "Updated original destination URL", example = "https://example.com/updated")

@@ -5,16 +5,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.Instant;
 
 @Entity
 @Table(name = "shortlinks")
-@Data
+@Setter
+@Getter
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor

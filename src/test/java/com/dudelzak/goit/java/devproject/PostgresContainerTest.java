@@ -11,7 +11,7 @@ public class PostgresContainerTest {
     void testPostgresContainer() {
         // Создаем контейнер PostgreSQL
         try (PostgreSQLContainer
-                     postgresContainer = new PostgreSQLContainer("postgres:latest")) {
+                     postgresContainer = new PostgreSQLContainer("postgres:17-alpine")) {
             postgresContainer.start();
 
             // Проверяем, что база поднялась

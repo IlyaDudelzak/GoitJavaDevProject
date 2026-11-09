@@ -4,6 +4,7 @@ import com.dudelzak.goit.java.devproject.security.dto.AuthRequest;
 import com.dudelzak.goit.java.devproject.security.dto.RegisterRequest;
 import com.dudelzak.goit.java.devproject.security.dto.AuthResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -40,7 +41,11 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .createdAt(Instant.now())
                 .build();
-        userRepository.save(user);
+        try {
+            userRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException e) {
+            throw new UserAlreadyExistsException();
+        }
         return authenticate(new AuthRequest(request));
     }
 }

@@ -1,6 +1,6 @@
 create table shortlinks
 (
-    id          serial primary key,
+    id          bigserial primary key,
     enabled     boolean not null default true,
     original_url text not null,
     short_code  varchar(8) not null unique,

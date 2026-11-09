@@ -2,11 +2,12 @@ package com.dudelzak.goit.java.devproject.shortlink;
 
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.util.Random;
 
 @Service
 public class CodeGenerator {
-    private static final Random random = new Random();
+    private static final Random random = new SecureRandom();
     public String generateCode() {
         return generateCode(6, 8);
     }
