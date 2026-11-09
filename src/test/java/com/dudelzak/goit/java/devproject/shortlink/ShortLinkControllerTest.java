@@ -1,4 +1,4 @@
-package com.dudelzak.goit.java.devproject.controller;
+package com.dudelzak.goit.java.devproject.shortlink;
 
 import com.dudelzak.goit.java.devproject.shortlink.dto.CreateShortLinkRequest;
 import com.dudelzak.goit.java.devproject.shortlink.dto.EditShortLinkRequest;

@@ -1,4 +1,4 @@
-package com.dudelzak.goit.java.devproject.controller;
+package com.dudelzak.goit.java.devproject.security;
 
 import com.dudelzak.goit.java.devproject.security.dto.AuthRequest;
 import com.dudelzak.goit.java.devproject.security.dto.RegisterRequest;
