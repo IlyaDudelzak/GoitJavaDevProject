@@ -90,40 +90,78 @@ jobs:
       - name: Wait for App to be Ready
         run: |
           echo "Waiting for app to start..."
+          READY=false
           for i in {1..30}; do
-            if curl -s -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
-              echo "App is healthy!"
+            if curl -s -f http://localhost:8080/v3/api-docs > /dev/null 2>&1; then
+              echo "App is healthy and OpenAPI docs are available!"
+              READY=true
               break
             fi
             echo "Waiting ($i/30)..."
             sleep 3
           done
 
-      - name: Verify Dashboard and API
+          if [ "$READY" != "true" ]; then
+            echo "App failed to start within timeout"
+            docker compose logs
+            exit 1
+          fi
+
+      - name: Verify API
         run: |
-          # 1. Root / must redirect to /dashboard (HTTP 302)
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/)
+          # 1. OpenAPI documentation must be accessible (HTTP 200)
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/v3/api-docs)
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "Expected 200 for /v3/api-docs, got $HTTP_STATUS"
+            exit 1
+          fi
+          echo "/v3/api-docs returned 200 OK"
+
+          # 2. Register a new user
+          REGISTER_RES=$(curl -s -w "\n%{http_code}" -X POST http://localhost:8080/api/v1/auth/register \
+            -H "Content-Type: application/json" \
+            -d '{"username":"smokeuser","password":"Password123"}')
+          HTTP_STATUS=$(echo "$REGISTER_RES" | tail -n1)
+          BODY=$(echo "$REGISTER_RES" | sed '$d')
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "Expected 200 for /api/v1/auth/register, got $HTTP_STATUS. Response: $BODY"
+            exit 1
+          fi
+          TOKEN=$(echo "$BODY" | jq -r '.token')
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "Failed to extract JWT token from register response"
+            exit 1
+          fi
+          echo "User registered successfully, token acquired"
+
+          # 3. Unauthorized access to protected endpoint must return 401
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/v1/link/all)
+          if [ "$HTTP_STATUS" != "401" ]; then
+            echo "Expected 401 for unauthorized /api/v1/link/all, got $HTTP_STATUS"
+            exit 1
+          fi
+          echo "Protected endpoint correctly returned 401 for unauthorized request"
+
+          # 4. Create a short link with JWT authentication
+          CREATE_RES=$(curl -s -w "\n%{http_code}" -X POST http://localhost:8080/api/v1/link/create \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"originalUrl":"https://example.com","customCode":"smoke123"}')
+          HTTP_STATUS=$(echo "$CREATE_RES" | tail -n1)
+          BODY=$(echo "$CREATE_RES" | sed '$d')
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "Expected 200 for /api/v1/link/create, got $HTTP_STATUS. Response: $BODY"
+            exit 1
+          fi
+          echo "Short link smoke123 created successfully"
+
+          # 5. Short link redirection must return HTTP 302
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/v1/link/go/smoke123)
           if [ "$HTTP_STATUS" != "302" ]; then
-            echo "Expected 302 redirect for root, got $HTTP_STATUS"
+            echo "Expected 302 redirect for /api/v1/link/go/smoke123, got $HTTP_STATUS"
             exit 1
           fi
-          echo "Root / correctly redirects to /dashboard"
-
-          # 2. /dashboard must return 200 OK without authentication
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/dashboard)
-          if [ "$HTTP_STATUS" != "200" ]; then
-            echo "Expected 200 for /dashboard, got $HTTP_STATUS"
-            exit 1
-          fi
-          echo "/dashboard correctly returned 200 OK"
-
-          # 3. /dashboard/api/stats must return 200 OK
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/dashboard/api/stats)
-          if [ "$HTTP_STATUS" != "200" ]; then
-            echo "Expected 200 for /dashboard/api/stats, got $HTTP_STATUS"
-            exit 1
-          fi
-          echo "/dashboard/api/stats correctly returned 200 OK"
+          echo "/api/v1/link/go/smoke123 correctly redirected (HTTP 302)"
 
       - name: Dump Logs on Failure
         if: failure()
