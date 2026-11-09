@@ -17,6 +17,11 @@ A REST API service for shortening URLs with JWT authentication, click statistics
 
 ## ⚙️ Environment Variables
 
+Copy the template file to configure your local environment:
+```bash
+cp .env.example .env
+```
+
 | Variable | Description | Default Value | Usage Location |
 |---|---|---|---|
 | `DB_URL` | JDBC URL for PostgreSQL connection | `jdbc:postgresql://localhost:5432/sbmt` | `application.properties` |
