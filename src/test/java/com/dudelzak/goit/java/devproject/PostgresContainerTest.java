@@ -13,16 +13,7 @@ public class PostgresContainerTest {
         try (PostgreSQLContainer
                      postgresContainer = new PostgreSQLContainer("postgres:17-alpine")) {
             postgresContainer.start();
-
-            // Проверяем, что база поднялась
-            String jdbcUrl = postgresContainer.getJdbcUrl();
             String username = postgresContainer.getUsername();
-            String password = postgresContainer.getPassword();
-
-            System.out.println("JDBC URL: " + jdbcUrl);
-            System.out.println("User: " + username);
-            System.out.println("Password: " + password);
-
             assertEquals("test", username);
         }
     }

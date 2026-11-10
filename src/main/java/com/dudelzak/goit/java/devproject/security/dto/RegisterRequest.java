@@ -16,8 +16,9 @@ public class RegisterRequest {
     @Schema(description = "Username (3 to 16 characters)", example = "John_Doe")
     private String username;
 
-    @Schema(description = "Password (min 8 chars, at least one digit, uppercase and lowercase letter)", example = "Password123")
+    @NotBlank
     @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,128}$", message = "Password must be at least 8 characters long, and contain at leat one number, lowercase and uppercase letter")
+    @Schema(description = "Password (min 8 chars, at least one digit, uppercase and lowercase letter)", example = "Password123")
     private String password;
 }
 

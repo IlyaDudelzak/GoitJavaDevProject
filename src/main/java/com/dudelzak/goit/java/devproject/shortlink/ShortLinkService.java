@@ -18,13 +18,14 @@ import java.util.Objects;
 
 @Service
 public class ShortLinkService {
+    private static final String pathToGo = "link/go/";
     private final String baseUrl;
     private final ShortLinkRepository shortLinkRepository;
     private final SecurityUtils securityUtils;
     private final CodeGenerator codeGenerator;
 
     public ShortLinkService(
-            @Value("${app.base-url:${APP_BASE_URL:http://localhost:8080/api/v1/link/go/}}") String baseUrl,
+            @Value("${app.base-url:${APP_BASE_URL:http://localhost:8080/api/v1/}}") String baseUrl,
             ShortLinkRepository shortLinkRepository,
             SecurityUtils securityUtils,
             CodeGenerator codeGenerator
@@ -50,18 +51,13 @@ public class ShortLinkService {
         return getShortLink(link);
     }
 
-    public ShortLinkResponse getShortLink(String shortCode) {
-        return getShortLink(shortLinkRepository.findByShortCode(shortCode).orElseThrow(NoSuchLinkException::new));
-    }
-
     public ShortLinkResponse getShortLink(ShortLink link) {
-        String fullUrl = baseUrl + link.getShortCode();
+        String fullUrl = baseUrl + pathToGo + link.getShortCode();
         return ShortLinkResponse.builder()
                 .enabled(link.isEnabled())
                 .originalUrl(link.getOriginalUrl())
                 .shortCode(link.getShortCode())
                 .shortUrl(fullUrl)
-                .shortLink(fullUrl)
                 .createdAt(link.getCreatedAt())
                 .editedAt(link.getEditedAt())
                 .expiresAt(link.getExpiresAt())
@@ -114,14 +110,30 @@ public class ShortLinkService {
                 shortLinkRepository.saveAndFlush(link);
                 return getShortLink(link);
             } catch (DataIntegrityViolationException e) {
+                if (!isShortCodeUniqueViolation(e)) {
+                    throw e;
+                }
                 if (isCustom) {
                     throw new ShortLinkWithCodeAlreadyExistsException();
                 }
-                // Auto-generated code collision race condition: retry with a new code
             }
         }
         throw new ShortLinkWithCodeAlreadyExistsException();
     }
+
+
+    private boolean isShortCodeUniqueViolation(DataIntegrityViolationException e) {
+        Throwable cause = e.getCause();
+        if (cause instanceof org.hibernate.exception.ConstraintViolationException cve) {
+            String constraintName = cve.getConstraintName();
+            if (constraintName != null && constraintName.toLowerCase().contains("short_code")) {
+                return true;
+            }
+        }
+        String message = e.getMessage();
+        return message != null && message.toLowerCase().contains("short_code");
+    }
+
 
     @Transactional
     public ShortLinkResponse editShortLink(EditShortLinkRequest request) {
@@ -151,8 +163,7 @@ public class ShortLinkService {
             return getShortLink(link);
         }
         link.setEditedAt(Instant.now());
-        shortLinkRepository.save(link);
-        return getShortLink(link.getShortCode());
+        return getShortLink(link);
     }
 
     public String getOriginalUrl(String shortCode) {

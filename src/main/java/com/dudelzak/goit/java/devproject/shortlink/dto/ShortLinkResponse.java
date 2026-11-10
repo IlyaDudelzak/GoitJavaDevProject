@@ -18,9 +18,6 @@ public class ShortLinkResponse {
     @Schema(description = "Full short redirect URL", example = "http://localhost:8080/api/v1/link/go/abc123")
     private String shortUrl;
 
-    @Schema(description = "Full short redirect URL (alias)", example = "http://localhost:8080/api/v1/link/go/abc123")
-    private String shortLink;
-
     @Schema(description = "Original destination URL", example = "https://example.com")
     private String originalUrl;
 

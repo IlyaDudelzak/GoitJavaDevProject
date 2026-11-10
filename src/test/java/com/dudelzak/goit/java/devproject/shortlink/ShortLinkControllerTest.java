@@ -136,6 +136,17 @@ class ShortLinkControllerTest {
     }
 
     @Test
+    void createShortLinkNoUrlShouldReturn400() {
+        var request = CreateShortLinkRequest.builder()
+                .customCode("testlink")
+                .expiresAt(Instant.now().plus(1, ChronoUnit.DAYS))
+                .build();
+        sendCreateRequest(request, true)
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
     void createSameShortLinkShouldReturn409() {
         var request = createDefaultRequest("testlink", Instant.now().plus(1, ChronoUnit.DAYS));
         sendCreateRequest(request, true)

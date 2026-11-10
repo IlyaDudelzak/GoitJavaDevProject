@@ -6,7 +6,7 @@ create table shortlinks
     short_code  varchar(8) not null unique,
     visits      bigint default 0,
     user_id     bigint not null references users(id) on delete cascade,
-    created_at  timestamp not null default current_timestamp,
-    edited_at  timestamp not null default current_timestamp,
+    created_at  timestamp not null,
+    edited_at  timestamp not null,
     expires_at     timestamp
 );

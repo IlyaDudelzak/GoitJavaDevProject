@@ -2,7 +2,6 @@ package com.dudelzak.goit.java.devproject.security;
 
 import com.dudelzak.goit.java.devproject.security.dto.AuthRequest;
 import com.dudelzak.goit.java.devproject.security.dto.RegisterRequest;
-import com.dudelzak.goit.java.devproject.security.UserRepository;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,6 +70,19 @@ class AuthControllerTest {
                 .post("/api/v1/auth/register")
                 .then()
                 .statusCode(200);
+    }
+
+    @Test
+    void registerNewUserNoPasswordShouldReturn400() {
+        RegisterRequest request = new RegisterRequest("ExampleUser", null);
+        given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .log().all()
+                .when()
+                .post("/api/v1/auth/register")
+                .then()
+                .statusCode(400);
     }
 
     @Test

@@ -14,7 +14,7 @@ public class SecurityUtils {
     public User getCurrentUser() {
         String username = getCurrentUsername();
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Current user not found in database: " + username));
+                .orElseThrow(UserDoesNotExistException::new);
     }
 
     public Long getCurrentUserId() {

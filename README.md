@@ -24,12 +24,12 @@ cp .env.example .env
 
 | Variable | Description | Default Value | Usage Location |
 |---|---|---|---|
-| `DB_URL` | JDBC URL for PostgreSQL connection | `jdbc:postgresql://localhost:5432/sbmt` | `application.properties` |
+| `DB_URL` | JDBC URL for PostgreSQL connection | `jdbc:postgresql://localhost:5432/devproject` | `application.properties` |
 | `DB_USERNAME` | Database username | `postgres` | `application.properties` |
 | `DB_PASSWORD` | Database password | `postgres` | `application.properties` |
 | `JWT_KEY` (`jwt.key`) | Secret key used to sign and validate JWT tokens | Defined in `application.properties` | Spring Security / Nimbus JWT |
 | `APP_BASE_URL` (`app.base-url`) | Base URL prefix for generating short link URLs | `http://localhost:8080/api/v1/` | `application.properties` / ShortLinkService |
-| `POSTGRES_DB` | Database name initialized in the container | `sbmt` | `compose.yaml` |
+| `POSTGRES_DB` | Database name initialized in the container | `devproject` | `compose.yaml` |
 | `POSTGRES_USER` | PostgreSQL container username | `postgres` | `compose.yaml` |
 | `POSTGRES_PASSWORD` | PostgreSQL container password | `postgres` | `compose.yaml` |
 
@@ -59,10 +59,20 @@ docker compose down
    ```bash
    docker compose up postgres -d
    ```
-   Or ensure a local PostgreSQL instance is running on port `5432` with database `sbmt` and credentials `postgres`/`postgres`.
+   Or ensure a local PostgreSQL instance is running on port `5432` with database `devproject` and credentials `postgres`/`postgres`.
 
-2. **Run the application**:
+2. **Set environment variables and run the application**:
+   Spring Boot does not load `.env` automatically when running directly via Gradle. Export the environment variables from `.env` before running:
    ```bash
+   export $(grep -v '^#' .env | xargs) && ./gradlew bootRun
+   ```
+   Or pass the required variables explicitly:
+   ```bash
+   DB_URL=jdbc:postgresql://localhost:5432/devproject \
+   DB_USERNAME=postgres \
+   DB_PASSWORD=postgres \
+   JWT_KEY=mySecretKeyForJwtGenerationAndValidationWhichMustBeLongEnough123! \
+   APP_BASE_URL=http://localhost:8080/api/v1/ \
    ./gradlew bootRun
    ```
 

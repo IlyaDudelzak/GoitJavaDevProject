@@ -2,6 +2,7 @@ package com.dudelzak.goit.java.devproject.shortlink.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -17,6 +18,7 @@ import java.time.Instant;
 @Builder(toBuilder = true)
 @Schema(description = "Request payload for creating a new short link")
 public class CreateShortLinkRequest {
+    @NotBlank
     @Pattern(
             regexp = "^(https?://)(www\\.)?([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}((:[0-9]+)?(/\\S*)?)?$",
             message = "Original URL must be a valid link"
