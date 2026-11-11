@@ -27,7 +27,7 @@ cp .env.example .env
 | `DB_URL` | JDBC URL for PostgreSQL connection | `jdbc:postgresql://localhost:5432/devproject` | `application.properties` |
 | `DB_USERNAME` | Database username | `postgres` | `application.properties` |
 | `DB_PASSWORD` | Database password | `postgres` | `application.properties` |
-| `JWT_KEY` (`jwt.key`) | Secret key used to sign and validate JWT tokens | Defined in `application.properties` | Spring Security / Nimbus JWT |
+| `JWT_KEY` (`jwt.key`) | Secret key used to sign and validate JWT tokens (min 32 chars) | None (Required) | Spring Security / Nimbus JWT |
 | `APP_BASE_URL` (`app.base-url`) | Base URL prefix for generating short link URLs | `http://localhost:8080/api/v1/` | `application.properties` / ShortLinkService |
 | `POSTGRES_DB` | Database name initialized in the container | `devproject` | `compose.yaml` |
 | `POSTGRES_USER` | PostgreSQL container username | `postgres` | `compose.yaml` |

@@ -17,10 +17,6 @@ import java.time.Instant;
 @Builder
 @Schema(description = "Request payload for updating an existing short link")
 public class EditShortLinkRequest {
-    @Schema(description = "Short code of the link to edit", example = "custom1")
-    @NotNull
-    private String shortCode;
-
     @Pattern(
             regexp = "^(https?://)(www\\.)?([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}((:[0-9]+)?(/\\S*)?)?$",
             message = "Original URL must be a valid link"

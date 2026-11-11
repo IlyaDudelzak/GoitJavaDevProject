@@ -86,7 +86,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void registerSameUserShouldReturn401() {
+    void registerSameUserShouldReturn409() {
         RegisterRequest request = new RegisterRequest("TheThirdUser", "SecurePwd103");
         given()
                 .contentType(ContentType.JSON)

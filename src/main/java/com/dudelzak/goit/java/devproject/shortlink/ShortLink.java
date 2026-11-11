@@ -7,10 +7,13 @@ import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+import org.hibernate.annotations.DynamicUpdate;
+
 import java.time.Instant;
 
 @Entity
 @Table(name = "shortlinks")
+@DynamicUpdate
 @Setter
 @Getter
 @Builder(toBuilder = true)
@@ -44,7 +47,6 @@ public class ShortLink {
     @Schema(description = "Last modification timestamp (UTC)", example = "2026-11-08T15:30:00Z")
     private Instant editedAt;
 
-    @Future
     @Schema(description = "Expiration timestamp (UTC)", example = "2027-01-01T00:00:00Z")
     private Instant expiresAt;
 

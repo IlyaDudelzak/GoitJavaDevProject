@@ -83,7 +83,7 @@ class ShortLinkControllerTest {
         if (authorized) {
             spec.header("Authorization", "Bearer " + token);
         }
-        return spec.when().post("/api/v1/link/create");
+        return spec.when().post("/api/v1/link/");
     }
 
     private CreateShortLinkRequest createDefaultRequest(String customCode, Instant endsAt) {
@@ -192,7 +192,6 @@ class ShortLinkControllerTest {
                 .as(ShortLinkResponse.class);
         EditShortLinkRequest editRequest =
                 EditShortLinkRequest.builder()
-                        .shortCode("testlink")
                         .originalUrl(originalResponse.getOriginalUrl() + "example/")
                         .expiresAt(Instant.now().plus(7, ChronoUnit.DAYS))
                         .enabled(false)
@@ -202,7 +201,7 @@ class ShortLinkControllerTest {
                 .body(editRequest)
                 .header("Authorization", "Bearer " + token)
                 .when()
-                .post("/api/v1/link/edit")
+                .patch("/api/v1/link/testlink")
                 .then()
                 .statusCode(200)
                 .extract()
@@ -234,14 +233,13 @@ class ShortLinkControllerTest {
                 .as(ShortLinkResponse.class);
         EditShortLinkRequest editRequest =
                 EditShortLinkRequest.builder()
-                        .shortCode("testlink")
                         .build();
         ShortLinkResponse response = given()
                 .contentType(ContentType.JSON)
                 .body(editRequest)
                 .header("Authorization", "Bearer " + token)
                 .when()
-                .post("/api/v1/link/edit")
+                .patch("/api/v1/link/testlink")
                 .then()
                 .statusCode(200)
                 .extract()
@@ -257,7 +255,7 @@ class ShortLinkControllerTest {
                  given()
                 .header("Authorization", "Bearer " + token)
                 .when()
-                .get("/api/v1/link/details/testlink")
+                .get("/api/v1/link/testlink")
                 .then()
                 .statusCode(200)
                 .extract()
@@ -265,7 +263,6 @@ class ShortLinkControllerTest {
 
         EditShortLinkRequest editRequest =
                 EditShortLinkRequest.builder()
-                        .shortCode("testlink")
                         .originalUrl(originalResponse.getOriginalUrl())
                         .expiresAt(originalResponse.getExpiresAt())
                         .enabled(originalResponse.isEnabled())
@@ -275,7 +272,7 @@ class ShortLinkControllerTest {
                 .body(editRequest)
                 .header("Authorization", "Bearer " + token)
                 .when()
-                .post("/api/v1/link/edit")
+                .patch("/api/v1/link/testlink")
                 .then()
                 .statusCode(200)
                 .extract()
@@ -302,7 +299,6 @@ class ShortLinkControllerTest {
                 .path("token");
         EditShortLinkRequest editRequest =
                 EditShortLinkRequest.builder()
-                        .shortCode("testlink")
                         .originalUrl(originalUrl + "example/")
                         .build();
         given()
@@ -310,7 +306,7 @@ class ShortLinkControllerTest {
                 .body(editRequest)
                 .header("Authorization", "Bearer " + otherToken)
                 .when()
-                .post("/api/v1/link/edit")
+                .patch("/api/v1/link/testlink")
                 .then()
                 .statusCode(403);
     }
@@ -324,7 +320,7 @@ class ShortLinkControllerTest {
         given()
                 .header("Authorization", "Bearer " + token)
                 .when()
-                .delete("/api/v1/link/delete/testlink")
+                .delete("/api/v1/link/testlink")
                 .then()
                 .statusCode(204);
     }
@@ -347,7 +343,7 @@ class ShortLinkControllerTest {
         given()
                 .header("Authorization", "Bearer " + otherToken)
                 .when()
-                .delete("/api/v1/link/delete/testlink")
+                .delete("/api/v1/link/testlink")
                 .then()
                 .statusCode(403);
     }
@@ -357,7 +353,7 @@ class ShortLinkControllerTest {
         given()
                 .header("Authorization", "Bearer " + token)
                 .when()
-                .delete("/api/v1/link/delete/testlink")
+                .delete("/api/v1/link/testlink")
                 .then()
                 .statusCode(404);
     }
@@ -370,7 +366,7 @@ class ShortLinkControllerTest {
         given()
                 .header("Authorization", "Bearer " + token)
                 .when()
-                .get("/api/v1/link/details/testlink")
+                .get("/api/v1/link/testlink")
                 .then()
                 .statusCode(200);
     }
@@ -393,7 +389,7 @@ class ShortLinkControllerTest {
         given()
                 .header("Authorization", "Bearer " + otherToken)
                 .when()
-                .get("/api/v1/link/details/testlink")
+                .get("/api/v1/link/testlink")
                 .then()
                 .statusCode(403);
     }
@@ -460,12 +456,72 @@ class ShortLinkControllerTest {
         int visits = given()
                 .header("Authorization", "Bearer " + token)
                 .when()
-                .get("/api/v1/link/details/testlink")
+                .get("/api/v1/link/testlink")
                 .then()
                 .statusCode(200)
                 .extract()
                 .path("visits");
 
         assertEquals(1, visits);
+    }
+
+    @Test
+    void editShortLinkInvalidShortCodeShouldReturn400() {
+        EditShortLinkRequest editRequest = EditShortLinkRequest.builder()
+                .originalUrl("https://example.com/updated")
+                .build();
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(editRequest)
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .patch("/api/v1/link/bad")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void concurrentRedirectVisitsShouldNotLoseCounts() throws InterruptedException {
+        var request = createDefaultRequest("concur1", Instant.now().plus(1, ChronoUnit.DAYS));
+        sendCreateRequest(request, true).then().statusCode(200);
+
+        int numberOfRequests = 20;
+        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(10);
+        java.util.concurrent.CountDownLatch startLatch = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.CountDownLatch endLatch = new java.util.concurrent.CountDownLatch(numberOfRequests);
+
+        for (int i = 0; i < numberOfRequests; i++) {
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    given()
+                            .redirects().follow(false)
+                            .when()
+                            .get("/api/v1/link/go/concur1")
+                            .then()
+                            .statusCode(302);
+                } catch (Exception ignored) {
+                } finally {
+                    endLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        boolean finished = endLatch.await(15, java.util.concurrent.TimeUnit.SECONDS);
+        executor.shutdown();
+        assertTrue(finished, "All concurrent requests must complete within timeout");
+
+        int visits = given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/v1/link/concur1")
+                .then()
+                .statusCode(200)
+                .extract()
+                .path("visits");
+
+        assertEquals(numberOfRequests, visits);
     }
 }

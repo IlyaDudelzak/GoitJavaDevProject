@@ -31,7 +31,7 @@ public class ShortLinkService {
             CodeGenerator codeGenerator
     ) {
         if (baseUrl == null || baseUrl.isBlank()) {
-            this.baseUrl = "http://localhost:8080/api/v1/link/go/";
+            this.baseUrl = "http://localhost:8080/api/v1/";
         } else {
             this.baseUrl = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
         }
@@ -136,8 +136,8 @@ public class ShortLinkService {
 
 
     @Transactional
-    public ShortLinkResponse editShortLink(EditShortLinkRequest request) {
-        ShortLink link = shortLinkRepository.findByShortCode(request.getShortCode())
+    public ShortLinkResponse editShortLink(String shortCode, EditShortLinkRequest request) {
+        ShortLink link = shortLinkRepository.findByShortCode(shortCode)
                 .orElseThrow(NoSuchLinkException::new);
 
         Long currentUserId = securityUtils.getCurrentUserId();
